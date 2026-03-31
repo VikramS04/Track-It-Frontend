@@ -106,7 +106,7 @@ const EditModal = ({ budget, onClose, onSave }) => {
   );
 };
 
-export default function BudgetManager({ onBack }) {
+export default function BudgetManager({ }) {
   const [budgets, setBudgets] = useState(initialBudgets);
   const [editingBudget, setEditingBudget] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
@@ -129,7 +129,7 @@ export default function BudgetManager({ onBack }) {
 
       {/* Header */}
       <header className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur border-b border-slate-800/50 px-8 py-4 flex items-center gap-4">
-        <button onClick={onBack} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all">←</button>
+        {/* <button onClick={onBack} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all">←</button> */}
         <div className="flex-1">
           <h1 className="text-lg font-black">Budget Manager</h1>
           <p className="text-xs text-slate-500">March 2026</p>

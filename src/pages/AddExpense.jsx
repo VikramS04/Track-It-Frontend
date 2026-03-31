@@ -13,7 +13,7 @@ const categories = [
 
 const paymentMethods = ["Cash", "UPI", "Credit Card", "Debit Card", "Net Banking"];
 
-export default function AddExpense({ onBack }) {
+export default function AddExpense() {
   const [amount, setAmount] = useState("");
   const [title, setTitle] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -34,12 +34,12 @@ export default function AddExpense({ onBack }) {
 
       {/* Header */}
       <header className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur border-b border-slate-800/50 px-8 py-4 flex items-center gap-4">
-        <button
+        {/* <button
           onClick={onBack}
           className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
         >
           ←
-        </button>
+        </button> */}
         <div>
           <h1 className="text-lg font-black">Add Expense</h1>
           <p className="text-xs text-slate-500">Record a new transaction</p>

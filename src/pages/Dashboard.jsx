@@ -40,17 +40,18 @@ const StatCard = ({ label, value, sub, accent, icon }) => (
 );
 
 const DonutChart = ({ data }) => {
-  const size = 160;
-  const radius = 60;
+  const size = 120;
+  const radius = 44;
   const cx = size / 2;
   const cy = size / 2;
   const circumference = 2 * Math.PI * radius;
   let offset = 0;
 
   return (
-    <div className="flex items-center gap-6">
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#1e293b" strokeWidth="20" />
+    <div className="flex flex-col items-center gap-4">
+      {/* Smaller, centered donut */}
+      <svg width={size} height={size} className="-rotate-90 shrink-0">
+        <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#1e293b" strokeWidth="14" />
         {data.map((item, i) => {
           const dash = (item.percent / 100) * circumference;
           const gap = circumference - dash;
@@ -60,7 +61,7 @@ const DonutChart = ({ data }) => {
               cx={cx} cy={cy} r={radius}
               fill="none"
               stroke={item.color}
-              strokeWidth="20"
+              strokeWidth="14"
               strokeDasharray={`${dash} ${gap}`}
               strokeDashoffset={-offset}
               strokeLinecap="round"
@@ -71,14 +72,18 @@ const DonutChart = ({ data }) => {
           return el;
         })}
       </svg>
-      <div className="space-y-2 flex-1">
+
+      {/* Legend wraps into a 2-col grid */}
+      <div className="grid grid-cols-2 gap-x-4 gap-y-2 w-full">
         {data.map((item, i) => (
-          <div key={i} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ background: item.color }} />
-              <span className="text-slate-400 text-xs">{item.name}</span>
+          <div key={i} className="flex items-center justify-between min-w-0">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div className="w-2 h-2 rounded-full shrink-0" style={{ background: item.color }} />
+              <span className="text-slate-400 text-xs truncate">{item.name}</span>
             </div>
-            <span className="text-slate-300 text-xs font-semibold">₹{item.amount.toLocaleString()}</span>
+            <span className="text-slate-300 text-xs font-semibold shrink-0 ml-1">
+              ₹{item.amount.toLocaleString()}
+            </span>
           </div>
         ))}
       </div>
@@ -123,12 +128,12 @@ export default function Dashboard() {
         {/* Topbar */}
         <header className="sticky top-0 z-10 bg-slate-950/80 backdrop-blur border-b border-slate-800/50 px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button
+            {/* <button
               onClick={() => setSidebarOpen(!sidebarOpen)}
               className="text-slate-500 hover:text-white transition-colors text-xl"
             >
               ☰
-            </button>
+            </button> */}
             <div>
               <h1 className="text-lg font-black">Good morning, Vikram 👋</h1>
               <p className="text-xs text-slate-500">Tuesday, 31 March 2026</p>
