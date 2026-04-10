@@ -56,6 +56,7 @@ export default function AddExpense() {
             <input
               type="number"
               placeholder="0.00"
+              min="0"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               className="bg-transparent text-5xl font-black text-white placeholder-slate-700 outline-none w-48 text-center"
