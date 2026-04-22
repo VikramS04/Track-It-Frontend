@@ -8,7 +8,7 @@ import Trackitapp from "./pages/Trackitapp1";
 import Dashboard from "./pages/Dashboard";
 import Addexpense from "./pages/AddExpense.jsx";
 import Expenseslist from "./pages/ExpensesList";
-import Budgetmanager from "./pages/Budgetmanager";
+import Budgetmanager from "./pages/BudgetManager";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 
