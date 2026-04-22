@@ -7,7 +7,7 @@ import AuthPage from "./components/AuthPage";
 import Trackitapp from "./pages/Trackitapp1";
 import Dashboard from "./pages/Dashboard";
 import Addexpense from "./pages/AddExpense.jsx";
-import Expenseslist from "./pages/Expenseslist";
+import Expenseslist from "./pages/ExpensesList";
 import Budgetmanager from "./pages/Budgetmanager";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
