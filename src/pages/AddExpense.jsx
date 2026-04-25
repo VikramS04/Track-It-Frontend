@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { apiRequest } from "../lib/api";
 
 const categories = [
   { icon: "🛒", label: "Food", color: "bg-green-500/20 border-green-500/40 text-green-400" },
@@ -14,6 +16,7 @@ const categories = [
 const paymentMethods = ["Cash", "UPI", "Credit Card", "Debit Card", "Net Banking"];
 
 export default function AddExpense() {
+  const navigate = useNavigate();
   const [amount, setAmount] = useState("");
   const [title, setTitle] = useState("");
   const [selectedCategory, setSelectedCategory] = useState(null);
@@ -22,11 +25,42 @@ export default function AddExpense() {
   const [note, setNote] = useState("");
   const [recurring, setRecurring] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!amount || !title || !selectedCategory) return;
-    setSubmitted(true);
-    setTimeout(() => setSubmitted(false), 2000);
+    setSaving(true);
+    setError("");
+
+    try {
+      await apiRequest("/api/expenses", {
+        method: "POST",
+        body: JSON.stringify({
+          amount: Number(amount),
+          title,
+          category: selectedCategory,
+          date,
+          method: paymentMethod,
+          note,
+          recurring,
+        }),
+      });
+
+      setSubmitted(true);
+      setAmount("");
+      setTitle("");
+      setSelectedCategory(null);
+      setPaymentMethod("UPI");
+      setDate(new Date().toISOString().split("T")[0]);
+      setNote("");
+      setRecurring(false);
+      setTimeout(() => navigate("/expenses"), 700);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -164,18 +198,24 @@ export default function AddExpense() {
         </div>
 
         {/* Submit */}
+        {error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
+
         <button
           onClick={handleSubmit}
-          disabled={!amount || !title || !selectedCategory}
+          disabled={!amount || !title || !selectedCategory || saving}
           className={`w-full py-4 rounded-xl font-bold text-sm tracking-widest uppercase transition-all duration-200 ${
             submitted
               ? "bg-green-500 text-white shadow-lg shadow-green-500/30"
-              : amount && title && selectedCategory
+              : amount && title && selectedCategory && !saving
               ? "bg-blue-500 hover:bg-blue-400 text-white shadow-lg shadow-blue-500/25 hover:-translate-y-0.5 active:translate-y-0"
               : "bg-slate-800 text-slate-600 cursor-not-allowed"
           }`}
         >
-          {submitted ? "✓ Expense Saved!" : "Save Expense"}
+          {submitted ? "✓ Expense Saved!" : saving ? "Saving..." : "Save Expense"}
         </button>
 
       </div>

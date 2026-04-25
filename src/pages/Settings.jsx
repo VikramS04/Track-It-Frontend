@@ -1,5 +1,33 @@
 import { useState } from "react";
 
+const Toggle = ({ value, onChange }) => (
+  <button
+    onClick={() => onChange(!value)}
+    className={`w-11 h-6 rounded-full transition-all duration-300 relative shrink-0 ${value ? "bg-blue-500" : "bg-slate-700"}`}
+  >
+    <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all duration-300 shadow ${value ? "left-6" : "left-1"}`} />
+  </button>
+);
+
+const Section = ({ title, children }) => (
+  <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+    <div className="px-6 py-4 border-b border-slate-800">
+      <h3 className="font-bold text-white text-sm">{title}</h3>
+    </div>
+    <div className="divide-y divide-slate-800">{children}</div>
+  </div>
+);
+
+const Row = ({ label, sub, right }) => (
+  <div className="flex items-center justify-between px-6 py-4">
+    <div>
+      <p className="text-sm font-medium text-white">{label}</p>
+      {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
+    </div>
+    <div>{right}</div>
+  </div>
+);
+
 export default function Settings() {
   const [name, setName] = useState("Vikram Saini");
   const [email, setEmail] = useState("vikram@example.com");
@@ -12,34 +40,6 @@ export default function Settings() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
-
-  const Toggle = ({ value, onChange }) => (
-    <button
-      onClick={() => onChange(!value)}
-      className={`w-11 h-6 rounded-full transition-all duration-300 relative shrink-0 ${value ? "bg-blue-500" : "bg-slate-700"}`}
-    >
-      <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all duration-300 shadow ${value ? "left-6" : "left-1"}`} />
-    </button>
-  );
-
-  const Section = ({ title, children }) => (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-      <div className="px-6 py-4 border-b border-slate-800">
-        <h3 className="font-bold text-white text-sm">{title}</h3>
-      </div>
-      <div className="divide-y divide-slate-800">{children}</div>
-    </div>
-  );
-
-  const Row = ({ label, sub, right }) => (
-    <div className="flex items-center justify-between px-6 py-4">
-      <div>
-        <p className="text-sm font-medium text-white">{label}</p>
-        {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
-      </div>
-      <div>{right}</div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white">

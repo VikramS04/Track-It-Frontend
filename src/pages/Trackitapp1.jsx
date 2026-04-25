@@ -1,10 +1,18 @@
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { clearAuth, getStoredUser, isAuthenticated } from "../lib/api";
 
 export default function Trackitapp() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const user = getStoredUser();
+
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate("/login", { replace: true });
+    }
+  }, [navigate]);
 
   const navItems = [
     { icon: "⊞", label: "Dashboard", path: "dashboard" },
@@ -80,15 +88,28 @@ export default function Trackitapp() {
         <div className="p-4 border-t border-slate-800">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-sm font-bold shrink-0">
-              A
+              {user?.firstName?.charAt(0)?.toUpperCase() || "A"}
             </div>
             {sidebarOpen && (
-              <div className="overflow-hidden">
-                <p className="text-sm font-semibold text-white truncate">Vikram Morgan</p>
-                <p className="text-xs text-slate-500 truncate">vikram@example.com</p>
+              <div className="min-w-0 flex-1 overflow-hidden">
+                <p className="text-sm font-semibold text-white truncate">
+                  {user ? `${user.firstName} ${user.lastName}` : "TrackIt User"}
+                </p>
+                <p className="text-xs text-slate-500 truncate">{user?.email || "Not signed in"}</p>
               </div>
             )}
           </div>
+          {sidebarOpen && (
+            <button
+              onClick={() => {
+                clearAuth();
+                navigate("/login", { replace: true });
+              }}
+              className="mt-3 w-full rounded-lg border border-slate-800 px-3 py-2 text-xs font-semibold text-slate-500 transition-colors hover:border-red-500/30 hover:bg-red-500/10 hover:text-red-300"
+            >
+              Sign Out
+            </button>
+          )}
         </div>
       </aside>
 

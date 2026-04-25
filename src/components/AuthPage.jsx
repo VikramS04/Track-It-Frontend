@@ -1,12 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { apiRequest, storeAuth } from "../lib/api";
 
 const FloatingOrb = ({ className }) => (
   <div className={`absolute rounded-full blur-3xl opacity-20 animate-pulse ${className}`} />
 );
 
-const InputField = ({ label, type, placeholder, icon }) => {
+const InputField = ({ label, type, placeholder, icon, value, onChange }) => {
   const [focused, setFocused] = useState(false);
-  const [value, setValue] = useState("");
 
   return (
     <div className="relative group">
@@ -25,7 +26,7 @@ const InputField = ({ label, type, placeholder, icon }) => {
           type={type}
           placeholder={placeholder}
           value={value}
-          onChange={(e) => setValue(e.target.value)}
+          onChange={(e) => onChange(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           className="w-full bg-transparent py-3.5 px-3 text-slate-100 placeholder-slate-600 text-sm outline-none font-light"
@@ -38,10 +39,10 @@ const InputField = ({ label, type, placeholder, icon }) => {
   );
 };
 
-const LoginForm = ({ onSwitch }) => (
+const LoginForm = ({ form, loading, onChange, onSubmit, onSwitch }) => (
   <div className="space-y-5">
-    <InputField label="Email" type="email" placeholder="you@example.com" icon="✉" />
-    <InputField label="Password" type="password" placeholder="••••••••" icon="⬡" />
+    <InputField label="Email" type="email" placeholder="you@example.com" icon="✉" value={form.email} onChange={(value) => onChange("email", value)} />
+    <InputField label="Password" type="password" placeholder="••••••••" icon="⬡" value={form.password} onChange={(value) => onChange("password", value)} />
 
     <div className="flex items-center justify-between pt-1">
       <label className="flex items-center gap-2 cursor-pointer group">
@@ -55,8 +56,12 @@ const LoginForm = ({ onSwitch }) => (
       </button>
     </div>
 
-    <button className="w-full mt-2 py-4 bg-blue-500 hover:bg-blue-400 text-slate-900 font-bold rounded-xl transition-all duration-200 tracking-widest text-sm uppercase shadow-lg shadow-blue-500/25 hover:shadow-blue-400/40 hover:-translate-y-0.5 active:translate-y-0">
-      Sign In
+    <button
+      onClick={onSubmit}
+      disabled={loading}
+      className="w-full mt-2 py-4 bg-blue-500 hover:bg-blue-400 disabled:bg-slate-700 disabled:text-slate-400 text-slate-900 font-bold rounded-xl transition-all duration-200 tracking-widest text-sm uppercase shadow-lg shadow-blue-500/25 hover:shadow-blue-400/40 hover:-translate-y-0.5 active:translate-y-0 disabled:translate-y-0"
+    >
+      {loading ? "Signing In..." : "Sign In"}
     </button>
 
     <p className="text-center text-slate-500 text-sm pt-2">
@@ -68,19 +73,23 @@ const LoginForm = ({ onSwitch }) => (
   </div>
 );
 
-const RegisterForm = ({ onSwitch }) => (
+const RegisterForm = ({ form, loading, onChange, onSubmit, onSwitch }) => (
   <div className="space-y-4">
     <div className="grid grid-cols-2 gap-4">
-      <InputField label="First Name" type="text" placeholder="Vikram" icon="⬡" />
-      <InputField label="Last Name" type="text" placeholder="Saini" icon="⬡" />
+      <InputField label="First Name" type="text" placeholder="Vikram" icon="⬡" value={form.firstName} onChange={(value) => onChange("firstName", value)} />
+      <InputField label="Last Name" type="text" placeholder="Saini" icon="⬡" value={form.lastName} onChange={(value) => onChange("lastName", value)} />
     </div>
-    <InputField label="Email" type="email" placeholder="you@example.com" icon="✉" />
-    <InputField label="Password" type="password" placeholder="••••••••" icon="⬡" />
-    <InputField label="Confirm Password" type="password" placeholder="••••••••" icon="⬡" />
+    <InputField label="Email" type="email" placeholder="you@example.com" icon="✉" value={form.email} onChange={(value) => onChange("email", value)} />
+    <InputField label="Password" type="password" placeholder="••••••••" icon="⬡" value={form.password} onChange={(value) => onChange("password", value)} />
+    <InputField label="Confirm Password" type="password" placeholder="••••••••" icon="⬡" value={form.confirmPassword} onChange={(value) => onChange("confirmPassword", value)} />
 
     <div className="pt-1">
-      <button className="w-full py-4 bg-blue-500 hover:bg-blue-400 text-slate-900 font-bold rounded-xl transition-all duration-200 tracking-widest text-sm uppercase shadow-lg shadow-blue-500/25 hover:shadow-blue-400/40 hover:-translate-y-0.5 active:translate-y-0">
-        Create Account
+      <button
+        onClick={onSubmit}
+        disabled={loading}
+        className="w-full py-4 bg-blue-500 hover:bg-blue-400 disabled:bg-slate-700 disabled:text-slate-400 text-slate-900 font-bold rounded-xl transition-all duration-200 tracking-widest text-sm uppercase shadow-lg shadow-blue-500/25 hover:shadow-blue-400/40 hover:-translate-y-0.5 active:translate-y-0 disabled:translate-y-0"
+      >
+        {loading ? "Creating..." : "Create Account"}
       </button>
     </div>
 
@@ -95,6 +104,68 @@ const RegisterForm = ({ onSwitch }) => (
 
 export default function AuthPage() {
   const [mode, setMode] = useState("login");
+  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
+  const [registerForm, setRegisterForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const updateLoginForm = (field, value) => {
+    setLoginForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateRegisterForm = (field, value) => {
+    setRegisterForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleLogin = async () => {
+    setError("");
+    setLoading(true);
+
+    try {
+      const data = await apiRequest("/api/users/login", {
+        method: "POST",
+        body: JSON.stringify(loginForm),
+      });
+      storeAuth(data);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    setError("");
+
+    if (registerForm.password !== registerForm.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { confirmPassword: _confirmPassword, ...payload } = registerForm;
+      const data = await apiRequest("/api/users/register", {
+        method: "POST",
+        body: JSON.stringify(payload),
+      });
+      storeAuth(data);
+      navigate("/dashboard");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4 relative overflow-hidden font-sans">
@@ -152,10 +223,34 @@ export default function AuthPage() {
           </div>
 
           {/* Form */}
+          {error && (
+            <div className="mb-5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
+
           {mode === "login" ? (
-            <LoginForm onSwitch={() => setMode("register")} />
+            <LoginForm
+              form={loginForm}
+              loading={loading}
+              onChange={updateLoginForm}
+              onSubmit={handleLogin}
+              onSwitch={() => {
+                setError("");
+                setMode("register");
+              }}
+            />
           ) : (
-            <RegisterForm onSwitch={() => setMode("login")} />
+            <RegisterForm
+              form={registerForm}
+              loading={loading}
+              onChange={updateRegisterForm}
+              onSubmit={handleRegister}
+              onSwitch={() => {
+                setError("");
+                setMode("login");
+              }}
+            />
           )}
 
           {/* Divider */}

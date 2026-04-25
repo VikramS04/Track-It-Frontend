@@ -1,16 +1,8 @@
-import { useState } from "react";
-
-const initialBudgets = [
-  { id: 1, name: "Food & Dining", icon: "🛒", spent: 8420, total: 10000, color: "bg-green-500", colorHex: "#22c55e" },
-  { id: 2, name: "Transport", icon: "🚗", spent: 3200, total: 4000, color: "bg-yellow-500", colorHex: "#eab308" },
-  { id: 3, name: "Entertainment", icon: "🎬", spent: 2400, total: 2000, color: "bg-red-500", colorHex: "#ef4444" },
-  { id: 4, name: "Utilities", icon: "⚡", spent: 3100, total: 5000, color: "bg-blue-500", colorHex: "#3b82f6" },
-  { id: 5, name: "Health", icon: "💪", spent: 1800, total: 3000, color: "bg-purple-500", colorHex: "#a855f7" },
-  { id: 6, name: "Shopping", icon: "🛍️", spent: 5499, total: 5000, color: "bg-pink-500", colorHex: "#ec4899" },
-];
+import { useEffect, useState } from "react";
+import { apiRequest } from "../lib/api";
 
 const BudgetCard = ({ budget, onEdit }) => {
-  const pct = Math.min(100, Math.round((budget.spent / budget.total) * 100));
+  const pct = budget.total ? Math.min(100, Math.round((budget.spent / budget.total) * 100)) : 0;
   const over = budget.spent > budget.total;
   const remaining = budget.total - budget.spent;
 
@@ -43,7 +35,6 @@ const BudgetCard = ({ budget, onEdit }) => {
         </div>
       </div>
 
-      {/* Progress Bar */}
       <div className="h-2.5 bg-slate-800 rounded-full overflow-hidden mb-3">
         <div
           className={`h-full rounded-full transition-all duration-700 ${over ? "bg-red-500" : budget.color}`}
@@ -63,7 +54,7 @@ const BudgetCard = ({ budget, onEdit }) => {
   );
 };
 
-const EditModal = ({ budget, onClose, onSave }) => {
+const EditModal = ({ budget, saving, onClose, onSave }) => {
   const [value, setValue] = useState(budget.total.toString());
 
   return (
@@ -84,6 +75,7 @@ const EditModal = ({ budget, onClose, onSave }) => {
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400 font-bold">₹</span>
           <input
             type="number"
+            min="0"
             value={value}
             onChange={(e) => setValue(e.target.value)}
             className="w-full bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl pl-9 pr-4 py-3.5 text-white text-lg font-bold outline-none transition-colors"
@@ -95,10 +87,11 @@ const EditModal = ({ budget, onClose, onSave }) => {
             Cancel
           </button>
           <button
-            onClick={() => { onSave(budget.id, parseInt(value)); onClose(); }}
-            className="flex-1 py-3 bg-blue-500 hover:bg-blue-400 rounded-xl text-white font-bold text-sm transition-all"
+            onClick={() => onSave(budget.id, Number(value))}
+            disabled={saving}
+            className="flex-1 py-3 bg-blue-500 hover:bg-blue-400 disabled:bg-slate-700 disabled:text-slate-400 rounded-xl text-white font-bold text-sm transition-all"
           >
-            Save Budget
+            {saving ? "Saving..." : "Save Budget"}
           </button>
         </div>
       </div>
@@ -106,33 +99,96 @@ const EditModal = ({ budget, onClose, onSave }) => {
   );
 };
 
-export default function BudgetManager({ }) {
-  const [budgets, setBudgets] = useState(initialBudgets);
+export default function BudgetManager() {
+  const [budgets, setBudgets] = useState([]);
   const [editingBudget, setEditingBudget] = useState(null);
   const [showAdd, setShowAdd] = useState(false);
   const [newName, setNewName] = useState("");
   const [newAmount, setNewAmount] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
 
   const totalBudget = budgets.reduce((a, b) => a + b.total, 0);
   const totalSpent = budgets.reduce((a, b) => a + b.spent, 0);
-  const overBudgetCount = budgets.filter(b => b.spent > b.total).length;
+  const overBudgetCount = budgets.filter((b) => b.spent > b.total).length;
+  const overallPct = totalBudget ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
-  const handleSave = (id, newTotal) => {
-    setBudgets(prev => prev.map(b => b.id === id ? { ...b, total: newTotal } : b));
+  const loadBudgets = async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await apiRequest("/api/budgets");
+      setBudgets(data.budgets || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadBudgets();
+  }, []);
+
+  const handleSave = async (id, newTotal) => {
+    if (Number.isNaN(newTotal) || newTotal < 0) return;
+    setSaving(true);
+    setError("");
+
+    try {
+      const data = await apiRequest(`/api/budgets/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ total: newTotal }),
+      });
+      setBudgets((prev) => prev.map((budget) => budget.id === id ? data.budget : budget));
+      setEditingBudget(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAdd = async () => {
+    if (!newName || !newAmount) return;
+    setSaving(true);
+    setError("");
+
+    try {
+      const data = await apiRequest("/api/budgets", {
+        method: "POST",
+        body: JSON.stringify({
+          name: newName,
+          category: newName,
+          total: Number(newAmount),
+          icon: "📦",
+          color: "bg-blue-500",
+          colorHex: "#3b82f6",
+        }),
+      });
+      setBudgets((prev) => [...prev, data.budget]);
+      setNewName("");
+      setNewAmount("");
+      setShowAdd(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white">
       {editingBudget && (
-        <EditModal budget={editingBudget} onClose={() => setEditingBudget(null)} onSave={handleSave} />
+        <EditModal budget={editingBudget} saving={saving} onClose={() => setEditingBudget(null)} onSave={handleSave} />
       )}
 
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur border-b border-slate-800/50 px-8 py-4 flex items-center gap-4">
-        {/* <button onClick={onBack} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all">←</button> */}
         <div className="flex-1">
           <h1 className="text-lg font-black">Budget Manager</h1>
-          <p className="text-xs text-slate-500">March 2026</p>
+          <p className="text-xs text-slate-500">Current month</p>
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
@@ -143,8 +199,12 @@ export default function BudgetManager({ }) {
       </header>
 
       <div className="p-8 space-y-8">
+        {error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
 
-        {/* Summary Strip */}
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Total Budget", value: `₹${totalBudget.toLocaleString()}`, icon: "🎯", color: "text-blue-400" },
@@ -161,27 +221,23 @@ export default function BudgetManager({ }) {
           ))}
         </div>
 
-        {/* Overall Progress */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
           <div className="flex justify-between items-center mb-3">
             <span className="font-bold text-white">Overall Monthly Progress</span>
-            <span className="text-sm font-bold text-slate-400">
-              {Math.round((totalSpent / totalBudget) * 100)}%
-            </span>
+            <span className="text-sm font-bold text-slate-400">{overallPct}%</span>
           </div>
           <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-700"
-              style={{ width: `${Math.min(100, (totalSpent / totalBudget) * 100)}%` }}
+              style={{ width: `${Math.min(100, overallPct)}%` }}
             />
           </div>
           <div className="flex justify-between mt-2">
             <span className="text-xs text-slate-600">₹{totalSpent.toLocaleString()} spent</span>
-            <span className="text-xs text-slate-600">₹{(totalBudget - totalSpent).toLocaleString()} remaining</span>
+            <span className="text-xs text-slate-600">₹{Math.max(totalBudget - totalSpent, 0).toLocaleString()} remaining</span>
           </div>
         </div>
 
-        {/* Add Budget Form */}
         {showAdd && (
           <div className="bg-slate-900 border border-blue-500/30 rounded-2xl p-6">
             <h3 className="font-bold text-white mb-4">New Budget Category</h3>
@@ -197,6 +253,7 @@ export default function BudgetManager({ }) {
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 font-bold text-sm">₹</span>
                 <input
                   type="number"
+                  min="0"
                   placeholder="Budget"
                   value={newAmount}
                   onChange={(e) => setNewAmount(e.target.value)}
@@ -204,34 +261,28 @@ export default function BudgetManager({ }) {
                 />
               </div>
               <button
-                onClick={() => {
-                  if (newName && newAmount) {
-                    setBudgets(prev => [...prev, {
-                      id: Date.now(), name: newName, icon: "📦",
-                      spent: 0, total: parseInt(newAmount),
-                      color: "bg-blue-500", colorHex: "#3b82f6"
-                    }]);
-                    setNewName(""); setNewAmount(""); setShowAdd(false);
-                  }
-                }}
-                className="px-5 py-3 bg-blue-500 hover:bg-blue-400 rounded-xl text-white font-bold text-sm transition-all"
+                onClick={handleAdd}
+                disabled={saving || !newName || !newAmount}
+                className="px-5 py-3 bg-blue-500 hover:bg-blue-400 disabled:bg-slate-700 disabled:text-slate-400 rounded-xl text-white font-bold text-sm transition-all"
               >
-                Add
+                {saving ? "Adding..." : "Add"}
               </button>
             </div>
           </div>
         )}
 
-        {/* Budget Cards Grid */}
         <div>
           <h2 className="font-bold text-white mb-4">Category Budgets</h2>
-          <div className="grid grid-cols-2 gap-4">
-            {budgets.map((budget) => (
-              <BudgetCard key={budget.id} budget={budget} onEdit={setEditingBudget} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="text-center py-20 text-slate-600">Loading budgets...</div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              {budgets.map((budget) => (
+                <BudgetCard key={budget.id} budget={budget} onEdit={setEditingBudget} />
+              ))}
+            </div>
+          )}
         </div>
-
       </div>
     </div>
   );

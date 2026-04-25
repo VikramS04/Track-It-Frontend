@@ -1,32 +1,25 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { apiRequest } from "../lib/api";
 
-const monthlyData = [
-  { month: "Oct", amount: 18200 },
-  { month: "Nov", amount: 22400 },
-  { month: "Dec", amount: 31200 },
-  { month: "Jan", amount: 19800 },
-  { month: "Feb", amount: 21000 },
-  { month: "Mar", amount: 24069 },
-];
-
-const categoryBreakdown = [
-  { name: "Food & Dining", amount: 8420, pct: 35, icon: "🛒", color: "#3b82f6", trend: "+8%" },
-  { name: "Utilities", amount: 4100, pct: 17, icon: "⚡", color: "#6366f1", trend: "-3%" },
-  { name: "Transport", amount: 3200, pct: 13, icon: "🚗", color: "#8b5cf6", trend: "+2%" },
-  { name: "Shopping", amount: 3499, pct: 15, icon: "🛍️", color: "#06b6d4", trend: "+22%" },
-  { name: "Entertainment", amount: 2400, pct: 10, icon: "🎬", color: "#0ea5e9", trend: "-5%" },
-  { name: "Health", amount: 2450, pct: 10, icon: "💪", color: "#818cf8", trend: "+1%" },
-];
+const emptyReport = {
+  totalSpent: 0,
+  avgMonthly: 0,
+  highestMonth: { month: "N/A", amount: 0 },
+  savingsRate: 0,
+  monthlyData: [],
+  categoryBreakdown: [],
+  insights: [],
+};
 
 const BarChart = ({ data }) => {
-  const max = Math.max(...data.map(d => d.amount));
+  const max = Math.max(...data.map((d) => d.amount), 1);
   return (
     <div className="flex items-end gap-3 h-40">
       {data.map((d, i) => {
         const height = Math.max(8, (d.amount / max) * 140);
         const isLast = i === data.length - 1;
         return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-2">
+          <div key={`${d.month}-${i}`} className="flex-1 flex flex-col items-center gap-2">
             <span className={`text-xs font-bold ${isLast ? "text-blue-400" : "text-slate-600"}`}>
               ₹{(d.amount / 1000).toFixed(1)}k
             </span>
@@ -50,41 +43,68 @@ const DonutRing = ({ data }) => {
   const cx = size / 2;
   const cy = size / 2;
   const circumference = 2 * Math.PI * radius;
-  let offset = 0;
+  const chartData = data.length ? data : [{ name: "No data", pct: 100, amount: 0, color: "#334155" }];
+  const withOffsets = chartData.reduce((acc, item) => {
+    const dash = (item.pct / 100) * circumference;
+    acc.items.push({ ...item, dash, offset: acc.total });
+    acc.total += dash;
+    return acc;
+  }, { items: [], total: 0 }).items;
 
   return (
     <svg width={size} height={size} className="-rotate-90">
       <circle cx={cx} cy={cy} r={radius} fill="none" stroke="#1e293b" strokeWidth="22" />
-      {data.map((item, i) => {
-        const dash = (item.pct / 100) * circumference;
-        const gap = circumference - dash;
-        const el = (
-          <circle key={i} cx={cx} cy={cy} r={radius} fill="none"
-            stroke={item.color} strokeWidth="22"
-            strokeDasharray={`${dash - 2} ${gap + 2}`}
-            strokeDashoffset={-offset}
+      {withOffsets.map((item) => {
+        const gap = circumference - item.dash;
+        return (
+          <circle
+            key={item.name}
+            cx={cx}
+            cy={cy}
+            r={radius}
+            fill="none"
+            stroke={item.color}
+            strokeWidth="22"
+            strokeDasharray={`${Math.max(item.dash - 2, 0)} ${gap + 2}`}
+            strokeDashoffset={-item.offset}
           />
         );
-        offset += dash;
-        return el;
       })}
     </svg>
   );
 };
 
-export default function Reports({ }) {
+export default function Reports() {
   const [period, setPeriod] = useState("month");
+  const [report, setReport] = useState(emptyReport);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const totalSpent = categoryBreakdown.reduce((a, b) => a + b.amount, 0);
-  const avgMonthly = Math.round(monthlyData.reduce((a, b) => a + b.amount, 0) / monthlyData.length);
-  const highestMonth = monthlyData.reduce((a, b) => a.amount > b.amount ? a : b);
+  useEffect(() => {
+    const loadReport = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const data = await apiRequest(`/api/reports?period=${period}`);
+        setReport(data.report || emptyReport);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadReport();
+  }, [period]);
+
+  const totalSpent = report.totalSpent || 0;
+  const categoryBreakdown = report.categoryBreakdown || [];
+  const monthlyData = report.monthlyData || [];
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white">
-
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur border-b border-slate-800/50 px-8 py-4 flex items-center gap-4">
-        {/* <button onClick={onBack} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all">←</button> */}
         <div className="flex-1">
           <h1 className="text-lg font-black">Reports & Analytics</h1>
           <p className="text-xs text-slate-500">Insights into your spending</p>
@@ -95,8 +115,12 @@ export default function Reports({ }) {
       </header>
 
       <div className="p-8 space-y-8">
+        {error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
 
-        {/* Period Toggle */}
         <div className="flex bg-slate-900 border border-slate-800 rounded-xl p-1 w-fit">
           {["week", "month", "year"].map((p) => (
             <button
@@ -111,13 +135,12 @@ export default function Reports({ }) {
           ))}
         </div>
 
-        {/* KPI Row */}
         <div className="grid grid-cols-4 gap-4">
           {[
-            { label: "This Month", value: `₹${totalSpent.toLocaleString()}`, icon: "💸", delta: "+14%", up: true },
-            { label: "Monthly Avg", value: `₹${avgMonthly.toLocaleString()}`, icon: "📊", delta: "6 months", up: null },
-            { label: "Highest Month", value: highestMonth.month, icon: "📈", delta: `₹${highestMonth.amount.toLocaleString()}`, up: null },
-            { label: "Savings Rate", value: "31%", icon: "🏦", delta: "+3% vs last", up: true },
+            { label: loading ? "Loading" : `This ${period}`, value: `₹${totalSpent.toLocaleString()}`, icon: "💸", delta: "Live data", up: null },
+            { label: "Monthly Avg", value: `₹${report.avgMonthly.toLocaleString()}`, icon: "📊", delta: "6 months", up: null },
+            { label: "Highest Month", value: report.highestMonth.month, icon: "📈", delta: `₹${report.highestMonth.amount.toLocaleString()}`, up: null },
+            { label: "Savings Rate", value: `${report.savingsRate}%`, icon: "🏦", delta: "Budget based", up: null },
           ].map((kpi) => (
             <div key={kpi.label} className="bg-slate-900 border border-slate-800 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
@@ -135,7 +158,6 @@ export default function Reports({ }) {
           ))}
         </div>
 
-        {/* Monthly Trend */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -144,15 +166,13 @@ export default function Reports({ }) {
             </div>
             <div className="text-right">
               <p className="text-xs text-slate-500">Current month</p>
-              <p className="text-lg font-black text-blue-400">₹24,069</p>
+              <p className="text-lg font-black text-blue-400">₹{(monthlyData.at(-1)?.amount || 0).toLocaleString()}</p>
             </div>
           </div>
           <BarChart data={monthlyData} />
         </div>
 
-        {/* Category Breakdown */}
         <div className="grid grid-cols-5 gap-6">
-          {/* Donut */}
           <div className="col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center">
             <h2 className="font-bold text-white mb-4 self-start">Category Split</h2>
             <div className="relative">
@@ -164,62 +184,49 @@ export default function Reports({ }) {
             </div>
           </div>
 
-          {/* Category List */}
           <div className="col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-6">
             <h2 className="font-bold text-white mb-4">Breakdown</h2>
-            <div className="space-y-4">
-              {categoryBreakdown.map((cat) => (
-                <div key={cat.name}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-base">{cat.icon}</span>
-                      <span className="text-sm font-medium text-slate-300">{cat.name}</span>
+            {categoryBreakdown.length === 0 ? (
+              <div className="py-16 text-center text-sm text-slate-600">
+                No spending data for this period
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {categoryBreakdown.map((cat) => (
+                  <div key={cat.name}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{cat.icon}</span>
+                        <span className="text-sm font-medium text-slate-300">{cat.name}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className={`text-xs font-semibold ${cat.trend.startsWith("+") ? "text-red-400" : "text-green-400"}`}>
+                          {cat.trend}
+                        </span>
+                        <span className="text-sm font-bold text-white">₹{cat.amount.toLocaleString()}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className={`text-xs font-semibold ${cat.trend.startsWith("+") ? "text-red-400" : "text-green-400"}`}>
-                        {cat.trend}
-                      </span>
-                      <span className="text-sm font-bold text-white">₹{cat.amount.toLocaleString()}</span>
+                    <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-700"
+                        style={{ width: `${cat.pct}%`, backgroundColor: cat.color }}
+                      />
                     </div>
                   </div>
-                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-700"
-                      style={{ width: `${cat.pct}%`, backgroundColor: cat.color }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Insight Cards */}
         <div className="grid grid-cols-3 gap-4">
-          {[
-            {
-              title: "💡 Biggest Overspend",
-              body: "Shopping exceeded your budget by ₹499 this month. Consider reducing impulse buys.",
-              color: "border-red-500/20 bg-red-500/5"
-            },
-            {
-              title: "✅ On Track",
-              body: "You're within budget for Transport and Health. Keep it up through the month!",
-              color: "border-green-500/20 bg-green-500/5"
-            },
-            {
-              title: "📅 Forecast",
-              body: "At current pace, you'll spend ~₹26,400 by month end — ₹1,400 over your total budget.",
-              color: "border-blue-500/20 bg-blue-500/5"
-            },
-          ].map((card) => (
+          {(report.insights || []).map((card) => (
             <div key={card.title} className={`border rounded-2xl p-5 ${card.color}`}>
               <p className="font-bold text-white text-sm mb-2">{card.title}</p>
               <p className="text-xs text-slate-400 leading-relaxed">{card.body}</p>
             </div>
           ))}
         </div>
-
       </div>
     </div>
   );

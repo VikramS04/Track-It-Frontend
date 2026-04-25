@@ -1,19 +1,5 @@
-import { useState } from "react";
-
-const allExpenses = [
-  { id: 1, title: "Netflix Subscription", category: "Entertainment", amount: 649, date: "2026-03-31", icon: "🎬", method: "Credit Card" },
-  { id: 2, title: "Grocery Store", category: "Food", amount: 1820, date: "2026-03-31", icon: "🛒", method: "UPI" },
-  { id: 3, title: "Uber Ride", category: "Transport", amount: 340, date: "2026-03-30", icon: "🚗", method: "UPI" },
-  { id: 4, title: "Electricity Bill", category: "Utilities", amount: 2100, date: "2026-03-28", icon: "⚡", method: "Net Banking" },
-  { id: 5, title: "Gym Membership", category: "Health", amount: 999, date: "2026-03-27", icon: "💪", method: "Debit Card" },
-  { id: 6, title: "Amazon Shopping", category: "Shopping", amount: 3499, date: "2026-03-26", icon: "🛍️", method: "Credit Card" },
-  { id: 7, title: "Swiggy Order", category: "Food", amount: 480, date: "2026-03-25", icon: "🛒", method: "UPI" },
-  { id: 8, title: "Metro Card Recharge", category: "Transport", amount: 500, date: "2026-03-24", icon: "🚗", method: "UPI" },
-  { id: 9, title: "Movie Tickets", category: "Entertainment", amount: 760, date: "2026-03-23", icon: "🎬", method: "Credit Card" },
-  { id: 10, title: "Doctor Visit", category: "Health", amount: 800, date: "2026-03-22", icon: "💪", method: "Cash" },
-  { id: 11, title: "Internet Bill", category: "Utilities", amount: 999, date: "2026-03-20", icon: "⚡", method: "Net Banking" },
-  { id: 12, title: "Books", category: "Education", amount: 650, date: "2026-03-18", icon: "📚", method: "UPI" },
-];
+import { useEffect, useMemo, useState } from "react";
+import { apiRequest } from "../lib/api";
 
 const categoryColors = {
   Entertainment: "bg-red-500/20 text-red-400",
@@ -26,34 +12,62 @@ const categoryColors = {
   Housing: "bg-orange-500/20 text-orange-400",
 };
 
+const categoryIcons = {
+  Entertainment: "🎬",
+  Food: "🛒",
+  Transport: "🚗",
+  Utilities: "⚡",
+  Health: "💪",
+  Shopping: "🛍️",
+  Education: "📚",
+  Housing: "🏠",
+};
+
 const categories = ["All", ...Object.keys(categoryColors)];
 
 export default function ExpensesList() {
+  const [expenses, setExpenses] = useState([]);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [sortBy, setSortBy] = useState("date");
   const [selectedIds, setSelectedIds] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState("");
 
-  const filtered = allExpenses
-    .filter((e) => {
-      const matchSearch = e.title.toLowerCase().includes(search.toLowerCase()) ||
-        e.category.toLowerCase().includes(search.toLowerCase());
-      const matchCat = selectedCategory === "All" || e.category === selectedCategory;
-      return matchSearch && matchCat;
-    })
-    .sort((a, b) => {
-      if (sortBy === "date") return new Date(b.date) - new Date(a.date);
-      if (sortBy === "amount") return b.amount - a.amount;
-      return a.title.localeCompare(b.title);
-    });
+  useEffect(() => {
+    const loadExpenses = async () => {
+      setLoading(true);
+      setError("");
+
+      try {
+        const params = new URLSearchParams({
+          sortBy,
+          limit: "100",
+        });
+
+        if (search) params.set("search", search);
+        if (selectedCategory !== "All") params.set("category", selectedCategory);
+
+        const data = await apiRequest(`/api/expenses?${params.toString()}`);
+        setExpenses(data.expenses || []);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExpenses();
+  }, [search, selectedCategory, sortBy]);
 
   const toggleSelect = (id) => {
     setSelectedIds((prev) => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
   };
 
-  const totalFiltered = filtered.reduce((a, b) => a + b.amount, 0);
+  const totalFiltered = expenses.reduce((a, b) => a + b.amount, 0);
 
-  const groupedByDate = filtered.reduce((acc, exp) => {
+  const groupedByDate = useMemo(() => expenses.reduce((acc, exp) => {
     const d = new Date(exp.date);
     const label = d.toDateString() === new Date().toDateString()
       ? "Today"
@@ -63,7 +77,26 @@ export default function ExpensesList() {
     if (!acc[label]) acc[label] = [];
     acc[label].push(exp);
     return acc;
-  }, {});
+  }, {}), [expenses]);
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    setDeleting(true);
+    setError("");
+
+    try {
+      await apiRequest("/api/expenses", {
+        method: "DELETE",
+        body: JSON.stringify({ ids: selectedIds }),
+      });
+      setExpenses((prev) => prev.filter((expense) => !selectedIds.includes(expense.id)));
+      setSelectedIds([]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white">
@@ -74,11 +107,15 @@ export default function ExpensesList() {
           {/* <button onClick={onBack} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all">←</button> */}
           <div className="flex-1">
             <h1 className="text-lg font-black">All Expenses</h1>
-            <p className="text-xs text-slate-500">{filtered.length} transactions · ₹{totalFiltered.toLocaleString()} total</p>
+            <p className="text-xs text-slate-500">{expenses.length} transactions · ₹{totalFiltered.toLocaleString()} total</p>
           </div>
           {selectedIds.length > 0 && (
-            <button className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-lg font-semibold">
-              Delete {selectedIds.length}
+            <button
+              onClick={handleBulkDelete}
+              disabled={deleting}
+              className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 px-3 py-1.5 rounded-lg font-semibold disabled:opacity-60"
+            >
+              {deleting ? "Deleting..." : `Delete ${selectedIds.length}`}
             </button>
           )}
         </div>
@@ -108,6 +145,11 @@ export default function ExpensesList() {
       </header>
 
       <div className="p-8 space-y-6">
+        {error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
 
         {/* Category Filters */}
         <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
@@ -127,7 +169,11 @@ export default function ExpensesList() {
         </div>
 
         {/* Grouped Transactions */}
-        {Object.keys(groupedByDate).length === 0 ? (
+        {loading ? (
+          <div className="text-center py-20 text-slate-600">
+            <p className="font-semibold">Loading expenses...</p>
+          </div>
+        ) : Object.keys(groupedByDate).length === 0 ? (
           <div className="text-center py-20 text-slate-600">
             <p className="text-4xl mb-3">🔍</p>
             <p className="font-semibold">No expenses found</p>
@@ -162,7 +208,7 @@ export default function ExpensesList() {
 
                     {/* Icon */}
                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${categoryColors[exp.category] || "bg-slate-700 text-white"}`}>
-                      {exp.icon}
+                      {categoryIcons[exp.category] || "•"}
                     </div>
 
                     {/* Info */}

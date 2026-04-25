@@ -13,7 +13,6 @@ import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 
 function App() {
-
   return (
     <BrowserRouter>
       <Routes>
