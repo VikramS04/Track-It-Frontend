@@ -185,27 +185,27 @@ export default function BudgetManager() {
         <EditModal budget={editingBudget} saving={saving} onClose={() => setEditingBudget(null)} onSave={handleSave} />
       )}
 
-      <header className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur border-b border-slate-800/50 px-8 py-4 flex items-center gap-4">
+      <header className="sticky top-0 z-10 flex flex-col gap-4 border-b border-slate-800/50 bg-slate-950/90 px-4 py-4 backdrop-blur sm:px-6 lg:flex-row lg:items-center lg:px-8">
         <div className="flex-1">
           <h1 className="text-lg font-black">Budget Manager</h1>
           <p className="text-xs text-slate-500">Current month</p>
         </div>
         <button
           onClick={() => setShowAdd(!showAdd)}
-          className="flex items-center gap-2 bg-blue-500 hover:bg-blue-400 text-white text-sm font-bold px-4 py-2 rounded-xl transition-all shadow-lg shadow-blue-500/25"
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-500 px-4 py-2 text-sm font-bold text-white transition-all shadow-lg shadow-blue-500/25 hover:bg-blue-400 sm:w-auto"
         >
           ＋ New Budget
         </button>
       </header>
 
-      <div className="p-8 space-y-8">
+      <div className="space-y-6 px-4 py-4 sm:px-6 sm:py-6 lg:space-y-8 lg:px-8">
         {error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {[
             { label: "Total Budget", value: `₹${totalBudget.toLocaleString()}`, icon: "🎯", color: "text-blue-400" },
             { label: "Total Spent", value: `₹${totalSpent.toLocaleString()}`, icon: "💸", color: "text-indigo-400" },
@@ -221,8 +221,8 @@ export default function BudgetManager() {
           ))}
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-          <div className="flex justify-between items-center mb-3">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6">
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <span className="font-bold text-white">Overall Monthly Progress</span>
             <span className="text-sm font-bold text-slate-400">{overallPct}%</span>
           </div>
@@ -232,16 +232,16 @@ export default function BudgetManager() {
               style={{ width: `${Math.min(100, overallPct)}%` }}
             />
           </div>
-          <div className="flex justify-between mt-2">
+          <div className="mt-2 flex flex-col gap-1 text-xs sm:flex-row sm:justify-between">
             <span className="text-xs text-slate-600">₹{totalSpent.toLocaleString()} spent</span>
             <span className="text-xs text-slate-600">₹{Math.max(totalBudget - totalSpent, 0).toLocaleString()} remaining</span>
           </div>
         </div>
 
         {showAdd && (
-          <div className="bg-slate-900 border border-blue-500/30 rounded-2xl p-6">
+          <div className="bg-slate-900 border border-blue-500/30 rounded-2xl p-4 sm:p-6">
             <h3 className="font-bold text-white mb-4">New Budget Category</h3>
-            <div className="flex gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row">
               <input
                 type="text"
                 placeholder="Category name..."
@@ -249,7 +249,7 @@ export default function BudgetManager() {
                 onChange={(e) => setNewName(e.target.value)}
                 className="flex-1 bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl px-4 py-3 text-white placeholder-slate-600 text-sm outline-none transition-colors"
               />
-              <div className="relative">
+              <div className="relative sm:w-36">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 font-bold text-sm">₹</span>
                 <input
                   type="number"
@@ -257,13 +257,13 @@ export default function BudgetManager() {
                   placeholder="Budget"
                   value={newAmount}
                   onChange={(e) => setNewAmount(e.target.value)}
-                  className="w-36 bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl pl-8 pr-4 py-3 text-white placeholder-slate-600 text-sm outline-none transition-colors"
+                  className="w-full bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-xl pl-8 pr-4 py-3 text-white placeholder-slate-600 text-sm outline-none transition-colors"
                 />
               </div>
               <button
                 onClick={handleAdd}
                 disabled={saving || !newName || !newAmount}
-                className="px-5 py-3 bg-blue-500 hover:bg-blue-400 disabled:bg-slate-700 disabled:text-slate-400 rounded-xl text-white font-bold text-sm transition-all"
+                className="rounded-xl bg-blue-500 px-5 py-3 text-sm font-bold text-white transition-all hover:bg-blue-400 disabled:bg-slate-700 disabled:text-slate-400"
               >
                 {saving ? "Adding..." : "Add"}
               </button>
@@ -276,7 +276,7 @@ export default function BudgetManager() {
           {loading ? (
             <div className="text-center py-20 text-slate-600">Loading budgets...</div>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {budgets.map((budget) => (
                 <BudgetCard key={budget.id} budget={budget} onEdit={setEditingBudget} />
               ))}

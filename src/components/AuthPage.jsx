@@ -75,7 +75,7 @@ const LoginForm = ({ form, loading, onChange, onSubmit, onSwitch }) => (
 
 const RegisterForm = ({ form, loading, onChange, onSubmit, onSwitch }) => (
   <div className="space-y-4">
-    <div className="grid grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <InputField label="First Name" type="text" placeholder="Vikram" icon="⬡" value={form.firstName} onChange={(value) => onChange("firstName", value)} />
       <InputField label="Last Name" type="text" placeholder="Saini" icon="⬡" value={form.lastName} onChange={(value) => onChange("lastName", value)} />
     </div>
@@ -185,7 +185,7 @@ export default function AuthPage() {
         }}
       />
 
-      <div className="relative w-full max-w-md">
+    <div className="relative w-full max-w-md">
 
         {/* Logo & Brand */}
         <div className="text-center mb-8">
@@ -203,7 +203,7 @@ export default function AuthPage() {
         </div>
 
         {/* Card */}
-        <div className="bg-slate-900/70 backdrop-blur-xl border border-slate-800 rounded-2xl p-8 shadow-2xl shadow-black/50">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-2xl shadow-black/50 backdrop-blur-xl sm:p-8">
 
           {/* Mode toggle tabs */}
           <div className="flex bg-slate-800/60 rounded-xl p-1 mb-8">
@@ -261,7 +261,7 @@ export default function AuthPage() {
           </div>
 
           {/* Social */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[
               { label: "Google", icon: "G" },
               { label: "GitHub", icon: "⌥" },

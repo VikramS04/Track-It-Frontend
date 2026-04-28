@@ -102,8 +102,8 @@ export default function ExpensesList() {
     <div className="min-h-screen bg-slate-950 font-sans text-white">
 
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur border-b border-slate-800/50 px-8 py-4">
-        <div className="flex items-center gap-4 mb-4">
+      <header className="sticky top-0 z-10 border-b border-slate-800/50 bg-slate-950/90 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
           {/* <button onClick={onBack} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all">←</button> */}
           <div className="flex-1">
             <h1 className="text-lg font-black">All Expenses</h1>
@@ -121,7 +121,7 @@ export default function ExpensesList() {
         </div>
 
         {/* Search */}
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <div className="flex-1 relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500">🔍</span>
             <input
@@ -135,7 +135,7 @@ export default function ExpensesList() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-slate-400 text-sm outline-none"
+            className="rounded-xl border border-slate-800 bg-slate-900 px-3 py-2.5 text-sm text-slate-400 outline-none sm:w-40"
           >
             <option value="date">By Date</option>
             <option value="amount">By Amount</option>
@@ -144,7 +144,7 @@ export default function ExpensesList() {
         </div>
       </header>
 
-      <div className="p-8 space-y-6">
+      <div className="space-y-6 px-4 py-4 sm:px-6 sm:py-6 lg:px-8">
         {error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
@@ -190,39 +190,37 @@ export default function ExpensesList() {
                 {exps.map((exp) => (
                   <div
                     key={exp.id}
-                    className={`flex items-center gap-4 p-4 rounded-xl border transition-all group cursor-pointer ${
+                    className={`group cursor-pointer rounded-xl border p-4 transition-all ${
                       selectedIds.includes(exp.id)
                         ? "bg-blue-500/10 border-blue-500/30"
                         : "bg-slate-900 border-slate-800 hover:border-slate-700"
                     }`}
                     onClick={() => toggleSelect(exp.id)}
                   >
-                    {/* Checkbox */}
-                    <div className={`w-5 h-5 rounded-md border transition-all shrink-0 flex items-center justify-center ${
-                      selectedIds.includes(exp.id)
-                        ? "bg-blue-500 border-blue-500"
-                        : "border-slate-700 group-hover:border-slate-500"
-                    }`}>
-                      {selectedIds.includes(exp.id) && <span className="text-white text-xs">✓</span>}
-                    </div>
-
-                    {/* Icon */}
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0 ${categoryColors[exp.category] || "bg-slate-700 text-white"}`}>
-                      {categoryIcons[exp.category] || "•"}
-                    </div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-white truncate">{exp.title}</p>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${categoryColors[exp.category]}`}>{exp.category}</span>
-                        <span className="text-xs text-slate-600">· {exp.method}</span>
+                    <div className="flex items-start gap-3 sm:items-center sm:gap-4">
+                      <div className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition-all sm:mt-0 ${
+                        selectedIds.includes(exp.id)
+                          ? "bg-blue-500 border-blue-500"
+                          : "border-slate-700 group-hover:border-slate-500"
+                      }`}>
+                        {selectedIds.includes(exp.id) && <span className="text-white text-xs">✓</span>}
                       </div>
-                    </div>
 
-                    {/* Amount */}
-                    <div className="text-right">
-                      <p className="text-sm font-bold text-white">−₹{exp.amount.toLocaleString()}</p>
+                      <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-lg ${categoryColors[exp.category] || "bg-slate-700 text-white"}`}>
+                        {categoryIcons[exp.category] || "•"}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-white">{exp.title}</p>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full px-2 py-0.5 text-xs ${categoryColors[exp.category]}`}>{exp.category}</span>
+                          <span className="text-xs text-slate-600">{exp.method}</span>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 text-right">
+                        <p className="text-sm font-bold text-white">−₹{exp.amount.toLocaleString()}</p>
+                      </div>
                     </div>
                   </div>
                 ))}

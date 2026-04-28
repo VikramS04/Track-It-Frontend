@@ -67,7 +67,7 @@ export default function AddExpense() {
     <div className="min-h-screen bg-slate-950 font-sans text-white">
 
       {/* Header */}
-      <header className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur border-b border-slate-800/50 px-8 py-4 flex items-center gap-4">
+      <header className="sticky top-0 z-10 flex items-center gap-4 border-b border-slate-800/50 bg-slate-950/90 px-4 py-4 backdrop-blur sm:px-6 lg:px-8">
         {/* <button
           onClick={onBack}
           className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all"
@@ -80,20 +80,20 @@ export default function AddExpense() {
         </div>
       </header>
 
-      <div className="max-w-2xl mx-auto p-8 space-y-8">
+      <div className="mx-auto max-w-2xl space-y-6 px-4 py-4 sm:px-6 sm:py-6 lg:space-y-8">
 
         {/* Amount Input — Hero */}
-        <div className="bg-gradient-to-br from-blue-600/20 to-indigo-600/10 border border-blue-500/20 rounded-3xl p-8 text-center">
+        <div className="rounded-3xl border border-blue-500/20 bg-gradient-to-br from-blue-600/20 to-indigo-600/10 p-5 text-center sm:p-8">
           <p className="text-slate-400 text-sm tracking-widest uppercase mb-4">Amount Spent</p>
           <div className="flex items-center justify-center gap-2">
-            <span className="text-4xl font-black text-blue-400">₹</span>
+            <span className="text-3xl font-black text-blue-400 sm:text-4xl">₹</span>
             <input
               type="number"
               placeholder="0.00"
               min="0"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
-              className="bg-transparent text-5xl font-black text-white placeholder-slate-700 outline-none w-48 text-center"
+              className="w-36 bg-transparent text-center text-4xl font-black text-white placeholder-slate-700 outline-none sm:w-48 sm:text-5xl"
             />
           </div>
           {amount && (
@@ -122,7 +122,7 @@ export default function AddExpense() {
           <label className="block text-xs font-semibold tracking-widest text-blue-400 uppercase mb-3">
             Category
           </label>
-          <div className="grid grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {categories.map((cat) => (
               <button
                 key={cat.label}
@@ -141,7 +141,7 @@ export default function AddExpense() {
         </div>
 
         {/* Date & Payment */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="block text-xs font-semibold tracking-widest text-blue-400 uppercase mb-2">
               Date
@@ -184,7 +184,7 @@ export default function AddExpense() {
         </div>
 
         {/* Recurring Toggle */}
-        <div className="flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-5 py-4">
+        <div className="flex items-center justify-between gap-4 rounded-xl border border-slate-800 bg-slate-900 px-4 py-4 sm:px-5">
           <div>
             <p className="text-sm font-semibold text-white">Recurring Expense</p>
             <p className="text-xs text-slate-500 mt-0.5">Repeat this expense monthly</p>

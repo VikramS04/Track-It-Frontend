@@ -5,7 +5,7 @@ import { authChangeEvent, clearAuth, getStoredUser, isAuthenticated } from "../l
 export default function Trackitapp() {
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState(getStoredUser());
 
   useEffect(() => {
@@ -45,12 +45,41 @@ export default function Trackitapp() {
   )?.path ?? "dashboard";
 
   return (
-    <div className="min-h-screen flex bg-slate-950 text-white">
+    <div className="min-h-screen bg-slate-950 text-white md:flex">
+      <div className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur md:hidden">
+        <button
+          onClick={() => setSidebarOpen(true)}
+          className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-800 text-slate-300 transition-colors hover:border-slate-700 hover:text-white"
+          aria-label="Open navigation"
+        >
+          ☰
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500 shadow-lg shadow-blue-500/30 rotate-12">
+            <span className="text-base font-black text-white -rotate-12">₹</span>
+          </div>
+          <span className="text-lg font-black tracking-tight text-white">
+            Track<span className="text-blue-400">It</span>
+          </span>
+        </div>
+        <div className="w-10" />
+      </div>
+
+      {sidebarOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation overlay"
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 z-30 bg-slate-950/70 backdrop-blur-sm md:hidden"
+        />
+      )}
 
       {/* Sidebar */}
       <aside
         style={{ width: sidebarOpen ? "15rem" : "4.5rem" }}
-        className="bg-slate-900 border-r border-slate-800 flex flex-col transition-all duration-300 shrink-0 overflow-hidden"
+        className={`fixed inset-y-0 left-0 z-40 flex w-72 flex-col overflow-hidden border-r border-slate-800 bg-slate-900 transition-transform duration-300 md:static md:z-auto md:translate-x-0 md:shrink-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+        }`}
       >
         {/* Logo + Hamburger Button*/}
         <div className="p-5 border-b border-slate-800 flex items-center justify-between">
@@ -64,13 +93,13 @@ export default function Trackitapp() {
                   Track<span className="text-blue-400">It</span>
                 </span>
               </div>
-              <button
-                onClick={() => setSidebarOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-                aria-label="Collapse sidebar"
-              >
-                ✕
-              </button>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              aria-label="Collapse sidebar"
+            >
+              ✕
+            </button>
             </>
           ) : (
             <button
@@ -88,7 +117,10 @@ export default function Trackitapp() {
           {navItems.map((item) => (
             <button
               key={item.path}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                navigate(item.path);
+                setSidebarOpen(false);
+              }}
               className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 text-sm font-medium ${
                 activePage === item.path
                   ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
@@ -131,7 +163,7 @@ export default function Trackitapp() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-6">
+      <main className="min-w-0 flex-1 px-4 py-4 md:p-6">
         <Outlet />
       </main>
 

@@ -104,29 +104,29 @@ export default function Reports() {
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white">
-      <header className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur border-b border-slate-800/50 px-8 py-4 flex items-center gap-4">
+      <header className="sticky top-0 z-10 flex flex-col gap-4 border-b border-slate-800/50 bg-slate-950/90 px-4 py-4 backdrop-blur sm:px-6 lg:flex-row lg:items-center lg:px-8">
         <div className="flex-1">
           <h1 className="text-lg font-black">Reports & Analytics</h1>
           <p className="text-xs text-slate-500">Insights into your spending</p>
         </div>
-        <button className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-sm font-semibold px-4 py-2 rounded-xl transition-all">
+        <button className="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-300 transition-all hover:bg-slate-700 sm:w-auto">
           📤 Export CSV
         </button>
       </header>
 
-      <div className="p-8 space-y-8">
+      <div className="space-y-6 px-4 py-4 sm:px-6 sm:py-6 lg:space-y-8 lg:px-8">
         {error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
           </div>
         )}
 
-        <div className="flex bg-slate-900 border border-slate-800 rounded-xl p-1 w-fit">
+        <div className="flex w-full overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 p-1 sm:w-fit">
           {["week", "month", "year"].map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all capitalize ${
+              className={`min-w-[5.5rem] flex-1 rounded-lg px-5 py-2 text-sm font-semibold capitalize transition-all sm:flex-none ${
                 period === p ? "bg-blue-500 text-white shadow-md" : "text-slate-500 hover:text-slate-300"
               }`}
             >
@@ -135,7 +135,7 @@ export default function Reports() {
           ))}
         </div>
 
-        <div className="grid grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {[
             { label: loading ? "Loading" : `This ${period}`, value: `₹${totalSpent.toLocaleString()}`, icon: "💸", delta: "Live data", up: null },
             { label: "Monthly Avg", value: `₹${report.avgMonthly.toLocaleString()}`, icon: "📊", delta: "6 months", up: null },
@@ -158,22 +158,26 @@ export default function Reports() {
           ))}
         </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-6">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6">
+          <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h2 className="font-bold text-white">Monthly Trend</h2>
               <p className="text-xs text-slate-500 mt-0.5">Last 6 months</p>
             </div>
-            <div className="text-right">
+            <div className="text-left sm:text-right">
               <p className="text-xs text-slate-500">Current month</p>
               <p className="text-lg font-black text-blue-400">₹{(monthlyData.at(-1)?.amount || 0).toLocaleString()}</p>
             </div>
           </div>
-          <BarChart data={monthlyData} />
+          <div className="overflow-x-auto">
+            <div className="min-w-[32rem]">
+              <BarChart data={monthlyData} />
+            </div>
+          </div>
         </div>
 
-        <div className="grid grid-cols-5 gap-6">
-          <div className="col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-6 flex flex-col items-center">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+          <div className="xl:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 flex flex-col items-center">
             <h2 className="font-bold text-white mb-4 self-start">Category Split</h2>
             <div className="relative">
               <DonutRing data={categoryBreakdown} />
@@ -184,7 +188,7 @@ export default function Reports() {
             </div>
           </div>
 
-          <div className="col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <div className="xl:col-span-3 bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6">
             <h2 className="font-bold text-white mb-4">Breakdown</h2>
             {categoryBreakdown.length === 0 ? (
               <div className="py-16 text-center text-sm text-slate-600">
@@ -194,7 +198,7 @@ export default function Reports() {
               <div className="space-y-4">
                 {categoryBreakdown.map((cat) => (
                   <div key={cat.name}>
-                    <div className="flex items-center justify-between mb-1.5">
+                    <div className="mb-1.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-base">{cat.icon}</span>
                         <span className="text-sm font-medium text-slate-300">{cat.name}</span>
@@ -219,7 +223,7 @@ export default function Reports() {
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           {(report.insights || []).map((card) => (
             <div key={card.title} className={`border rounded-2xl p-5 ${card.color}`}>
               <p className="font-bold text-white text-sm mb-2">{card.title}</p>

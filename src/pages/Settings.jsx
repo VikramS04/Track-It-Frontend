@@ -38,12 +38,12 @@ const Section = ({ title, children }) => (
 );
 
 const Row = ({ label, sub, right }) => (
-  <div className="flex items-center justify-between gap-4 px-6 py-4">
-    <div className="min-w-0">
+  <div className="flex flex-col gap-3 px-4 py-4 sm:px-6 md:flex-row md:items-center md:justify-between">
+    <div className="min-w-0 md:max-w-xs">
       <p className="text-sm font-medium text-white">{label}</p>
       {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
     </div>
-    <div className="shrink-0">{right}</div>
+    <div className="w-full md:w-auto md:shrink-0">{right}</div>
   </div>
 );
 
@@ -225,7 +225,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white">
-      <header className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur border-b border-slate-800/50 px-8 py-4 flex items-center gap-4">
+      <header className="sticky top-0 z-10 flex flex-col gap-4 border-b border-slate-800/50 bg-slate-950/90 px-4 py-4 backdrop-blur sm:px-6 lg:flex-row lg:items-center lg:px-8">
         <div className="flex-1">
           <h1 className="text-lg font-black">Profile & Settings</h1>
           <p className="text-xs text-slate-500">Manage your account</p>
@@ -234,7 +234,7 @@ export default function Settings() {
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${
+          className={`w-full rounded-xl px-5 py-2 text-sm font-bold transition-all sm:w-auto ${
             saved ? "bg-green-500 text-white" : "bg-blue-500 hover:bg-blue-400 text-white shadow-lg shadow-blue-500/25"
           } ${saving ? "opacity-70 cursor-not-allowed" : ""}`}
         >
@@ -242,14 +242,14 @@ export default function Settings() {
         </button>
       </header>
 
-      <div className="max-w-2xl mx-auto p-8 space-y-6">
+      <div className="mx-auto max-w-2xl space-y-6 px-4 py-4 sm:px-6 sm:py-6">
         {error && (
           <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
             {error}
           </div>
         )}
 
-        <div className="flex items-center gap-5 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+        <div className="flex flex-col gap-4 rounded-2xl border border-slate-800 bg-slate-900 p-5 sm:flex-row sm:items-center sm:gap-5 sm:p-6">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-2xl font-black shrink-0">
             {form.fullName.trim().charAt(0).toUpperCase() || "A"}
           </div>
@@ -267,7 +267,7 @@ export default function Settings() {
               <input
                 value={form.fullName}
                 onChange={(e) => setField("fullName", e.target.value)}
-                className="bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-white text-sm outline-none text-right w-44 transition-colors"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-blue-500 md:w-44 md:text-right"
               />
             )}
           />
@@ -278,7 +278,7 @@ export default function Settings() {
                 type="email"
                 value={form.email}
                 onChange={(e) => setField("email", e.target.value)}
-                className="bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-white text-sm outline-none text-right w-52 transition-colors"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none transition-colors focus:border-blue-500 md:w-52 md:text-right"
               />
             )}
           />
@@ -289,7 +289,7 @@ export default function Settings() {
               <select
                 value={form.currency}
                 onChange={(e) => setField("currency", e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none md:w-auto"
               >
                 <option value="INR">₹ Indian Rupee</option>
                 <option value="USD">$ US Dollar</option>
@@ -313,7 +313,7 @@ export default function Settings() {
               <select
                 value={form.monthStartDay}
                 onChange={(e) => setField("monthStartDay", e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none md:w-auto"
               >
                 <option value="1st">1st</option>
                 <option value="15th">15th</option>
@@ -328,7 +328,7 @@ export default function Settings() {
               <select
                 value={form.defaultView}
                 onChange={(e) => setField("defaultView", e.target.value)}
-                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none"
+                className="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white outline-none md:w-auto"
               >
                 <option value="dashboard">Dashboard</option>
                 <option value="expenses">Expenses</option>
