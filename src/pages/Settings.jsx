@@ -1,7 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { apiRequest, clearAuth, getStoredUser, setStoredUser } from "../lib/api";
+
+const defaultNotifications = {
+  budget: true,
+  weekly: true,
+  tips: false,
+};
+
+const defaultForm = {
+  fullName: "",
+  email: "",
+  currency: "INR",
+  darkMode: true,
+  monthStartDay: "1st",
+  defaultView: "dashboard",
+  notifications: defaultNotifications,
+};
 
 const Toggle = ({ value, onChange }) => (
   <button
+    type="button"
     onClick={() => onChange(!value)}
     className={`w-11 h-6 rounded-full transition-all duration-300 relative shrink-0 ${value ? "bg-blue-500" : "bg-slate-700"}`}
   >
@@ -19,94 +38,257 @@ const Section = ({ title, children }) => (
 );
 
 const Row = ({ label, sub, right }) => (
-  <div className="flex items-center justify-between px-6 py-4">
-    <div>
+  <div className="flex items-center justify-between gap-4 px-6 py-4">
+    <div className="min-w-0">
       <p className="text-sm font-medium text-white">{label}</p>
       {sub && <p className="text-xs text-slate-500 mt-0.5">{sub}</p>}
     </div>
-    <div>{right}</div>
+    <div className="shrink-0">{right}</div>
   </div>
 );
 
-export default function Settings() {
-  const [name, setName] = useState("Vikram Saini");
-  const [email, setEmail] = useState("vikram@example.com");
-  const [currency, setCurrency] = useState("INR");
-  const [notifications, setNotifications] = useState({ budget: true, weekly: true, tips: false });
-  const [darkMode, setDarkMode] = useState(true);
-  const [saved, setSaved] = useState(false);
-
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+const toFormState = (user) => {
+  const settings = user?.settings || {};
+  const notifications = {
+    ...defaultNotifications,
+    ...(settings.notifications || {}),
   };
+
+  return {
+    fullName: [user?.firstName, user?.lastName].filter(Boolean).join(" ").trim(),
+    email: user?.email || "",
+    currency: settings.currency || "INR",
+    darkMode: settings.darkMode ?? true,
+    monthStartDay: settings.monthStartDay || "1st",
+    defaultView: settings.defaultView || "dashboard",
+    notifications,
+  };
+};
+
+const splitName = (fullName) => {
+  const trimmed = fullName.trim();
+
+  if (!trimmed) {
+    return { firstName: "", lastName: "" };
+  }
+
+  const [firstName, ...rest] = trimmed.split(/\s+/);
+  return {
+    firstName,
+    lastName: rest.join(" "),
+  };
+};
+
+export default function Settings() {
+  const navigate = useNavigate();
+  const [form, setForm] = useState(defaultForm);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [workingAction, setWorkingAction] = useState("");
+
+  useEffect(() => {
+    const localUser = getStoredUser();
+    if (localUser) {
+      setForm(toFormState(localUser));
+    }
+
+    const loadUser = async () => {
+      try {
+        const data = await apiRequest("/api/users/me");
+        setStoredUser(data.user);
+        setForm(toFormState(data.user));
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadUser();
+  }, []);
+
+  const setField = (field, value) => {
+    setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const setNotification = (field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      notifications: {
+        ...prev.notifications,
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleSave = async () => {
+    const { firstName, lastName } = splitName(form.fullName);
+
+    if (!firstName || !lastName) {
+      setError("Please enter both first and last name");
+      return;
+    }
+
+    setSaving(true);
+    setError("");
+
+    try {
+      const data = await apiRequest("/api/users/me", {
+        method: "PUT",
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          email: form.email,
+          settings: {
+            currency: form.currency,
+            darkMode: form.darkMode,
+            monthStartDay: form.monthStartDay,
+            defaultView: form.defaultView,
+            notifications: form.notifications,
+          },
+        }),
+      });
+
+      setStoredUser(data.user);
+      setForm(toFormState(data.user));
+      setSaved(true);
+      window.setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setWorkingAction("export");
+    setError("");
+
+    try {
+      const data = await apiRequest("/api/users/me/export");
+      const blob = new Blob([JSON.stringify(data.export, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "trackit-export.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setWorkingAction("");
+    }
+  };
+
+  const handleClearData = async () => {
+    const confirmed = window.confirm("Clear all budgets and expenses for this account?");
+    if (!confirmed) return;
+
+    setWorkingAction("clear");
+    setError("");
+
+    try {
+      await apiRequest("/api/users/me/data", {
+        method: "DELETE",
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setWorkingAction("");
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    const confirmed = window.confirm("Delete your account permanently? This cannot be undone.");
+    if (!confirmed) return;
+
+    setWorkingAction("delete");
+    setError("");
+
+    try {
+      await apiRequest("/api/users/me", {
+        method: "DELETE",
+      });
+      clearAuth();
+      navigate("/login", { replace: true });
+    } catch (err) {
+      setError(err.message);
+      setWorkingAction("");
+    }
+  };
+
+  if (loading) {
+    return <div className="min-h-screen bg-slate-950 py-20 text-center text-slate-500">Loading settings...</div>;
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 font-sans text-white">
-
-      {/* Header */}
       <header className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur border-b border-slate-800/50 px-8 py-4 flex items-center gap-4">
-        {/* <button onClick={onBack} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all">←</button> */}
         <div className="flex-1">
           <h1 className="text-lg font-black">Profile & Settings</h1>
           <p className="text-xs text-slate-500">Manage your account</p>
         </div>
         <button
+          type="button"
           onClick={handleSave}
+          disabled={saving}
           className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${
             saved ? "bg-green-500 text-white" : "bg-blue-500 hover:bg-blue-400 text-white shadow-lg shadow-blue-500/25"
-          }`}
+          } ${saving ? "opacity-70 cursor-not-allowed" : ""}`}
         >
-          {saved ? "✓ Saved!" : "Save Changes"}
+          {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
         </button>
       </header>
 
       <div className="max-w-2xl mx-auto p-8 space-y-6">
+        {error && (
+          <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
 
-        {/* Avatar */}
         <div className="flex items-center gap-5 bg-slate-900 border border-slate-800 rounded-2xl p-6">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-2xl font-black shrink-0">
-            A
+            {form.fullName.trim().charAt(0).toUpperCase() || "A"}
           </div>
-          <div className="flex-1">
-            <p className="font-bold text-white text-lg">{name}</p>
-            <p className="text-slate-500 text-sm">{email}</p>
-            <p className="text-blue-400 text-xs mt-1 font-semibold">Pro Plan · Active</p>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-white text-lg truncate">{form.fullName || "TrackIt User"}</p>
+            <p className="text-slate-500 text-sm truncate">{form.email}</p>
+            <p className="text-blue-400 text-xs mt-1 font-semibold">Personal Workspace</p>
           </div>
-          <button className="px-4 py-2 border border-slate-700 hover:border-slate-600 rounded-xl text-slate-400 hover:text-white text-sm font-semibold transition-all">
-            Change Photo
-          </button>
         </div>
 
-        {/* Profile */}
         <Section title="Personal Information">
           <Row
             label="Full Name"
-            right={
+            right={(
               <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+                value={form.fullName}
+                onChange={(e) => setField("fullName", e.target.value)}
                 className="bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-white text-sm outline-none text-right w-44 transition-colors"
               />
-            }
+            )}
           />
           <Row
             label="Email Address"
-            right={
+            right={(
               <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="email"
+                value={form.email}
+                onChange={(e) => setField("email", e.target.value)}
                 className="bg-slate-800 border border-slate-700 focus:border-blue-500 rounded-lg px-3 py-2 text-white text-sm outline-none text-right w-52 transition-colors"
               />
-            }
+            )}
           />
           <Row
             label="Currency"
             sub="Used across all expenses"
-            right={
+            right={(
               <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                value={form.currency}
+                onChange={(e) => setField("currency", e.target.value)}
                 className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none"
               >
                 <option value="INR">₹ Indian Rupee</option>
@@ -114,95 +296,122 @@ export default function Settings() {
                 <option value="EUR">€ Euro</option>
                 <option value="GBP">£ British Pound</option>
               </select>
-            }
+            )}
           />
         </Section>
 
-        {/* Preferences */}
         <Section title="Preferences">
           <Row
             label="Dark Mode"
-            sub="App appearance"
-            right={<Toggle value={darkMode} onChange={setDarkMode} />}
+            sub="Saved for your account"
+            right={<Toggle value={form.darkMode} onChange={(value) => setField("darkMode", value)} />}
           />
           <Row
             label="Month Start Day"
-            sub="When your billing cycle starts"
-            right={
-              <select className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none">
-                <option>1st</option>
-                <option>15th</option>
-                <option>Last day</option>
+            sub="When your cycle starts"
+            right={(
+              <select
+                value={form.monthStartDay}
+                onChange={(e) => setField("monthStartDay", e.target.value)}
+                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none"
+              >
+                <option value="1st">1st</option>
+                <option value="15th">15th</option>
+                <option value="Last day">Last day</option>
               </select>
-            }
+            )}
           />
           <Row
             label="Default View"
-            right={
-              <select className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none">
-                <option>Dashboard</option>
-                <option>Expenses</option>
-                <option>Reports</option>
+            sub="Where TrackIt opens after login"
+            right={(
+              <select
+                value={form.defaultView}
+                onChange={(e) => setField("defaultView", e.target.value)}
+                className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm outline-none"
+              >
+                <option value="dashboard">Dashboard</option>
+                <option value="expenses">Expenses</option>
+                <option value="budget">Budgets</option>
+                <option value="reports">Reports</option>
+                <option value="settings">Settings</option>
               </select>
-            }
+            )}
           />
         </Section>
 
-        {/* Notifications */}
         <Section title="Notifications">
           <Row
             label="Budget Alerts"
             sub="Notify when near or over budget"
-            right={<Toggle value={notifications.budget} onChange={(v) => setNotifications(p => ({ ...p, budget: v }))} />}
+            right={<Toggle value={form.notifications.budget} onChange={(value) => setNotification("budget", value)} />}
           />
           <Row
             label="Weekly Summary"
-            sub="Spending recap every Sunday"
-            right={<Toggle value={notifications.weekly} onChange={(v) => setNotifications(p => ({ ...p, weekly: v }))} />}
+            sub="Spending recap every week"
+            right={<Toggle value={form.notifications.weekly} onChange={(value) => setNotification("weekly", value)} />}
           />
           <Row
             label="Saving Tips"
             sub="Personalized money-saving tips"
-            right={<Toggle value={notifications.tips} onChange={(v) => setNotifications(p => ({ ...p, tips: v }))} />}
+            right={<Toggle value={form.notifications.tips} onChange={(value) => setNotification("tips", value)} />}
           />
         </Section>
 
-        {/* Data */}
         <Section title="Data & Privacy">
           <Row
             label="Export All Data"
-            sub="Download as CSV"
-            right={
-              <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 text-sm font-semibold transition-all">
-                📤 Export
+            sub="Download a JSON snapshot"
+            right={(
+              <button
+                type="button"
+                onClick={handleExport}
+                disabled={workingAction === "export"}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-slate-300 text-sm font-semibold transition-all disabled:opacity-60"
+              >
+                {workingAction === "export" ? "Exporting..." : "Export"}
               </button>
-            }
+            )}
           />
           <Row
             label="Clear All Data"
-            sub="This action cannot be undone"
-            right={
-              <button className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-red-400 text-sm font-semibold transition-all">
-                🗑️ Clear
+            sub="Removes budgets and expenses"
+            right={(
+              <button
+                type="button"
+                onClick={handleClearData}
+                disabled={workingAction === "clear"}
+                className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 rounded-xl text-red-400 text-sm font-semibold transition-all disabled:opacity-60"
+              >
+                {workingAction === "clear" ? "Clearing..." : "Clear"}
               </button>
-            }
+            )}
           />
         </Section>
 
-        {/* Danger Zone */}
         <div className="bg-red-500/5 border border-red-500/20 rounded-2xl p-6">
           <h3 className="font-bold text-red-400 text-sm mb-1">Danger Zone</h3>
           <p className="text-xs text-slate-500 mb-4">Permanently delete your TrackIt account and all data.</p>
-          <button className="px-5 py-2.5 bg-red-500 hover:bg-red-600 rounded-xl text-white text-sm font-bold transition-all">
-            Delete Account
+          <button
+            type="button"
+            onClick={handleDeleteAccount}
+            disabled={workingAction === "delete"}
+            className="px-5 py-2.5 bg-red-500 hover:bg-red-600 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-60"
+          >
+            {workingAction === "delete" ? "Deleting..." : "Delete Account"}
           </button>
         </div>
 
-        {/* Sign Out */}
-        <button className="w-full py-4 border border-slate-800 hover:border-slate-700 rounded-2xl text-slate-400 hover:text-white font-semibold text-sm transition-all">
+        <button
+          type="button"
+          onClick={() => {
+            clearAuth();
+            navigate("/login", { replace: true });
+          }}
+          className="w-full py-4 border border-slate-800 hover:border-slate-700 rounded-2xl text-slate-400 hover:text-white font-semibold text-sm transition-all"
+        >
           Sign Out
         </button>
-
       </div>
     </div>
   );

@@ -1,18 +1,35 @@
 import { Outlet, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { clearAuth, getStoredUser, isAuthenticated } from "../lib/api";
+import { authChangeEvent, clearAuth, getStoredUser, isAuthenticated } from "../lib/api";
 
 export default function Trackitapp() {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const user = getStoredUser();
+  const [user, setUser] = useState(getStoredUser());
 
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate("/login", { replace: true });
+      return;
     }
-  }, [navigate]);
+
+    if (location.pathname === "/") {
+      navigate(`/${user?.settings?.defaultView || "dashboard"}`, { replace: true });
+    }
+  }, [location.pathname, navigate, user?.settings?.defaultView]);
+
+  useEffect(() => {
+    const syncUser = () => setUser(getStoredUser());
+
+    window.addEventListener(authChangeEvent, syncUser);
+    window.addEventListener("storage", syncUser);
+
+    return () => {
+      window.removeEventListener(authChangeEvent, syncUser);
+      window.removeEventListener("storage", syncUser);
+    };
+  }, []);
 
   const navItems = [
     { icon: "⊞", label: "Dashboard", path: "dashboard" },

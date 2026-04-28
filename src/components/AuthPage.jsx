@@ -134,7 +134,7 @@ export default function AuthPage() {
         body: JSON.stringify(loginForm),
       });
       storeAuth(data);
-      navigate("/dashboard");
+      navigate(`/${data.user?.settings?.defaultView || "dashboard"}`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -159,7 +159,7 @@ export default function AuthPage() {
         body: JSON.stringify(payload),
       });
       storeAuth(data);
-      navigate("/dashboard");
+      navigate(`/${data.user?.settings?.defaultView || "dashboard"}`);
     } catch (err) {
       setError(err.message);
     } finally {
